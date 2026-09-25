@@ -51,6 +51,7 @@ usertrap(void)
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
+  // scause let us know how cpu is trapped from user to kernel
   if(r_scause() == 8){
     // system call
 
@@ -67,10 +68,15 @@ usertrap(void)
 
     syscall();
   } else if((which_dev = devintr()) != 0){
-    // ok
-  } else if((r_scause() == 15 || r_scause() == 13) &&
+    // device interupt handle
+  }   
+  else if((r_scause() == 15 || r_scause() == 13) &&
             vmfault(p->pagetable, r_stval(), (r_scause() == 13)? 1 : 0) != 0) {
     // page fault on lazily-allocated page
+  } 
+  else if(r_scause() == SCAUSE_LOAD_PAGE_FAULT ||r_scause() == SCAUSE_STORE_PAGE_FAULT){
+    printf("Segmentation Fault!\n");
+    setkilled(p);
   } else {
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());

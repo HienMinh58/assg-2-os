@@ -277,6 +277,32 @@ freewalk(pagetable_t pagetable)
   kfree((void*)pagetable);
 }
 
+// walk the kernel page table
+// traverse the multi-level kernel page table
+// count the number of valid pages
+uint64
+walk_used(pagetable_t pagetable)
+{
+  // traverse through 512 entries of page table
+  uint64 count = 0;
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    // check if it is valid pagetable entry
+    if(!(pte & PTE_V))
+      continue;
+    else if((pte & (PTE_R | PTE_W | PTE_X)))
+    {
+      count++;
+    }
+    else
+    {
+      pagetable_t child = (pagetable_t)PTE2PA(pte);
+      count += walk_used(child);
+    }
+  }
+  return count;
+}
+
 // Free user memory pages,
 // then free page-table pages.
 void
@@ -484,3 +510,53 @@ ismapped(pagetable_t pagetable, uint64 va)
   }
   return 0;
 }
+
+static int 
+get_valid_user_pte(pagetable_t pagetable, uint64 va, pte_t **result)
+{
+  if(va >= MAXVA)
+    return -1;
+  if(va % PGSIZE != 0)
+    return -1;
+  pte_t *pte = walk(pagetable, va, 0);
+
+  if(pte == 0)
+    return -1;
+  
+  if((*pte & PTE_V) == 0 || (*pte & PTE_U) == 0)
+    return -1;
+  
+  *result = pte;
+  return 0;
+}
+
+int
+mprotect(pagetable_t pagetable, uint64 va)
+{
+  pte_t *pte;
+
+  if(get_valid_user_pte(pagetable, va, &pte) < 0)
+    return -1;
+  
+  *pte &= ~PTE_W;
+
+  sfence_vma();
+
+    return 0;
+}
+
+int 
+munprotect(pagetable_t pagetable, uint64 va)
+{
+  pte_t *pte;
+
+  if(get_valid_user_pte(pagetable, va, &pte) < 0)
+    return -1;
+  
+  *pte |= PTE_W;
+
+  sfence_vma();
+
+  return 0;
+}
+

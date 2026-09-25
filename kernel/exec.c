@@ -74,6 +74,10 @@ kexec(char *path, char **argv)
     if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
   }
+
+  // make the firts page inaccessible to user
+  uvmclear(pagetable, 0);
+  
   iunlockput(ip);
   end_op();
   ip = 0;

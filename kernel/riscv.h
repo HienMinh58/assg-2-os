@@ -378,3 +378,8 @@ typedef uint64 *pagetable_t; // 512 PTEs
 // Sv39, to avoid having to sign-extend virtual addresses
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+// RISC-V exception causes
+#define SCAUSE_USER_ECALL             8L // trap by ecall
+#define SCAUSE_LOAD_PAGE_FAULT       13L // error when try to read mem
+#define SCAUSE_STORE_PAGE_FAULT      15L // error when try to write mem

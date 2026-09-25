@@ -146,3 +146,28 @@ sys_waitx(void)
 
   return kwaitx(addr, rtime_addr, stime_addr);
 }
+
+uint64 sys_getusedmem(void)
+{
+  return walk_used(kernel_pagetable) * PGSIZE;
+}
+
+uint64 sys_mprotect(void)
+{
+  uint64 address;
+  struct proc *p = myproc();
+  argaddr(0, &address);
+  if(address >= p->sz)
+    return -1;
+  return mprotect(p->pagetable, address);
+}
+
+uint64 sys_munprotect(void)
+{
+  uint64 address;
+  struct proc *p = myproc();
+  argaddr(0, &address);
+  if(address >= p->sz)
+    return -1;
+  return munprotect(p->pagetable, address);
+}
